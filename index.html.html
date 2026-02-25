@@ -1,0 +1,2070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive AI Reading Skills Tutor</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <style>
+        .background-transition {
+            transition: background 0.8s ease-in-out;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .question-transition {
+            transition: all 0.3s ease-in-out;
+        }
+        .progress-bar {
+            transition: width 0.4s ease-in-out;
+        }
+        .button-hover {
+            transition: all 0.2s ease-in-out;
+        }
+        .button-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .text-shadow {
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        .layout-thumbnail {
+            border: 2px solid rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+        }
+        .layout-thumbnail:hover {
+            border-color: rgba(255,255,255,0.6);
+            transform: scale(1.02);
+        }
+        .layout-thumbnail.selected {
+            border-color: white;
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+        .mode-switch {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 8px;
+        }
+        .dropdown-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .dropdown-content.open {
+            max-height: 500px;
+        }
+        .modal-backdrop {
+            backdrop-filter: blur(5px);
+        }
+        .section-heading {
+            color: #ffd700;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        /* Enhanced Font size classes that affect all content */
+        .text-small { 
+            font-size: 0.875rem; 
+            line-height: 1.25rem; 
+        }
+        .text-medium { 
+            font-size: 1rem; 
+            line-height: 1.5rem; 
+        }
+        .text-large { 
+            font-size: 1.125rem; 
+            line-height: 1.75rem; 
+        }
+        
+        /* Headings scaling */
+        .text-small h1 { font-size: 2.25rem; line-height: 2.5rem; }
+        .text-medium h1 { font-size: 2.5rem; line-height: 1; }
+        .text-large h1 { font-size: 3rem; line-height: 1; }
+        
+        .text-small h2 { font-size: 1.5rem; line-height: 2rem; }
+        .text-medium h2 { font-size: 1.875rem; line-height: 2.25rem; }
+        .text-large h2 { font-size: 2.25rem; line-height: 2.5rem; }
+        
+        .text-small h3 { font-size: 1.25rem; line-height: 1.75rem; }
+        .text-medium h3 { font-size: 1.5rem; line-height: 2rem; }
+        .text-large h3 { font-size: 1.875rem; line-height: 2.25rem; }
+        
+        .text-small h4 { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-medium h4 { font-size: 1.25rem; line-height: 1.75rem; }
+        .text-large h4 { font-size: 1.5rem; line-height: 2rem; }
+        
+        .text-small .text-lg { font-size: 1rem; line-height: 1.5rem; }
+        .text-medium .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-large .text-lg { font-size: 1.25rem; line-height: 1.75rem; }
+        
+        .text-small .text-xl { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-medium .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+        .text-large .text-xl { font-size: 1.375rem; line-height: 2rem; }
+        
+        .text-small .text-2xl { font-size: 1.375rem; line-height: 2rem; }
+        .text-medium .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+        .text-large .text-2xl { font-size: 1.75rem; line-height: 2.25rem; }
+        
+        .text-small .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+        .text-medium .text-3xl { font-size: 2.25rem; line-height: 2.5rem; }
+        .text-large .text-3xl { font-size: 2.75rem; line-height: 1; }
+        
+        .text-small .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+        .text-medium .text-4xl { font-size: 2.5rem; line-height: 1; }
+        .text-large .text-4xl { font-size: 3rem; line-height: 1; }
+        
+        /* Button text scaling */
+        .text-small button { font-size: 0.875rem; }
+        .text-medium button { font-size: 1rem; }
+        .text-large button { font-size: 1.125rem; }
+        
+        /* Input text scaling */
+        .text-small input { font-size: 0.875rem; }
+        .text-medium input { font-size: 1rem; }
+        .text-large input { font-size: 1.125rem; }
+        
+        /* Responsive height adjustments for font scaling */
+        .responsive-height {
+            min-height: 60vh;
+        }
+        .text-medium .responsive-height {
+            min-height: 65vh;
+        }
+        .text-large .responsive-height {
+            min-height: 70vh;
+        }
+        
+        /* UPDATED Contrast classes */
+        /* LOW (new - very light) */
+        .contrast-low .bg-white\/10 { background-color: rgba(255,255,255,0.05); }
+        .contrast-low .bg-white\/20 { background-color: rgba(255,255,255,0.1); }
+        .contrast-low .bg-white\/30 { background-color: rgba(255,255,255,0.15); }
+        .contrast-low .opacity-75 { opacity: 0.6; }
+        .contrast-low .opacity-90 { opacity: 0.75; }
+        
+        /* MEDIUM (old low setting) */
+        .contrast-medium .bg-white\/10 { background-color: rgba(255,255,255,0.1); }
+        .contrast-medium .bg-white\/20 { background-color: rgba(255,255,255,0.2); }
+        .contrast-medium .bg-white\/30 { background-color: rgba(255,255,255,0.3); }
+        .contrast-medium .opacity-75 { opacity: 0.75; }
+        .contrast-medium .opacity-90 { opacity: 0.9; }
+        
+        /* HIGH (old medium setting) */
+        .contrast-high .bg-white\/10 { background-color: rgba(255,255,255,0.25); }
+        .contrast-high .bg-white\/20 { background-color: rgba(255,255,255,0.35); }
+        .contrast-high .bg-white\/30 { background-color: rgba(255,255,255,0.45); }
+        .contrast-high .opacity-75 { opacity: 0.9; }
+        .contrast-high .opacity-90 { opacity: 1; }
+
+        /* Print styles for reports */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; }
+            .bg-white\/10, .bg-white\/20, .bg-white\/30 { background: #f5f5f5 !important; }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'nz-blue': '#003f7f',
+                        'nz-green': '#00a86b',
+                        'warm-orange': '#ff6b35',
+                        'soft-purple': '#8b5fbf'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module">
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+        // Attach it to the global window object so your React code can reach it
+        window.GoogleGenerativeAI = GoogleGenerativeAI;
+    </script>
+
+    <script type="text/babel">
+
+        const { useState, useEffect, useContext, createContext } = React;
+
+        // Global variables (would be provided by Canvas)
+        const __app_id = "reading_tutor_demo";
+        const __firebase_config = {
+            // Demo config - replace with actual Firebase config
+            apiKey: "demo-key",
+            authDomain: "demo-project.firebaseapp.com",
+            projectId: "demo-project"
+        };
+        const __initial_auth_token = "demo-auth-token";
+
+        // Context for global state
+        const AppContext = createContext();
+
+        // CONTENT FILTERING - Inappropriate topics for 14-15 year olds
+        const inappropriateKeywords = [
+            // Sexual content
+            'sex', 'sexual', 'porn', 'nude', 'naked', 'explicit', 'adult content', 'erotic',
+            // Violence
+            'murder', 'kill', 'torture', 'gore', 'massacre', 'terrorism', 'terrorist',
+            // Drugs
+            'drugs', 'cocaine', 'heroin', 'meth', 'marijuana', 'cannabis', 'weed', 'smoking',
+            // Hate speech
+            'racist', 'racism', 'hate speech', 'nazi', 'supremacist', 'extremist',
+            // Self-harm
+            'suicide', 'self-harm', 'cutting',
+            // Profanity (basic list)
+            'damn', 'hell', 'crap', 'shit', 'fuck', 'bitch', 'ass'
+        ];
+
+        const validateTopic = (topic) => {
+            if (!topic || topic.trim() === '') return { valid: true };
+            
+            const topicLower = topic.toLowerCase();
+            
+            // Check against inappropriate keywords
+            for (const keyword of inappropriateKeywords) {
+                if (topicLower.includes(keyword)) {
+                    return {
+                        valid: false,
+                        message: 'Please choose a topic suitable for educational purposes. Let\'s focus on topics that support learning!'
+                    };
+                }
+            }
+            
+            return { valid: true };
+        };
+
+        // Te reo Māori phrases for encouragement
+        const encouragementPhrases = [
+            "Kia kaha!", // Be strong/Keep going!
+            "Tino pai!", // Very good!
+            "Ka pai!", // Good/Well done!
+            "Kia ora!", // Hello/Thank you
+            "Tūmeke!", // Awesome!
+            "Mārama!", // Clear/Understood!
+            "Atahua!", // Beautiful/Wonderful!
+        ];
+
+        const getRandomEncouragement = () => {
+            return encouragementPhrases[Math.floor(Math.random() * encouragementPhrases.length)];
+        };
+
+        // Background themes for different topics
+        const getBackgroundTheme = (topic) => {
+            const themes = {
+                science: 'bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600',
+                history: 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-500',
+                nature: 'bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600',
+                technology: 'bg-gradient-to-br from-gray-400 via-slate-500 to-zinc-600',
+                sports: 'bg-gradient-to-br from-orange-400 via-red-500 to-pink-500',
+                literature: 'bg-gradient-to-br from-purple-400 via-violet-500 to-indigo-600',
+                geography: 'bg-gradient-to-br from-cyan-400 via-teal-500 to-blue-500',
+                culture: 'bg-gradient-to-br from-rose-400 via-pink-500 to-purple-500',
+                māori: 'bg-gradient-to-br from-red-600 via-red-500 to-black',
+                default: 'bg-gradient-to-br from-nz-blue via-blue-500 to-nz-green'
+            };
+            
+            if (!topic) return themes.default;
+            
+            const topicLower = topic.toLowerCase();
+            for (const [key, theme] of Object.entries(themes)) {
+                if (topicLower.includes(key)) return theme;
+            }
+            return themes.default;
+        };
+
+        // Sample topics for placeholder
+        const sampleTopics = [
+            "Space exploration", "New Zealand wildlife", "Climate change", 
+            "Ancient civilizations", "Modern technology", "Ocean conservation",
+            "Renewable energy", "Cultural traditions", "Sports achievements",
+            "Māori culture", "Kiwi birds", "Conservation efforts"
+        ];
+
+        // Text types to cycle through
+        const textTypes = ['narratives', 'information reports', 'descriptions', 'instructions', 'argument', 'persuasion'];
+
+        // Ordered text types for display (combining argument/persuasion)
+        const displayTextTypes = ['narratives', 'information reports', 'descriptions', 'instructions', 'argument/persuasion'];
+
+        // Text length mappings for display
+        const textLengthMappings = {
+            '1.Basic': '50-100 words',
+            '2.Foundation': '100-120 words',
+            '3.Building': '160-200 words',
+            '4.Standard': '220-250 words'
+        };
+
+        // Reading age mappings for display  
+        const readingAgeMappings = {
+            '1.Basic': '6-8 years',
+            '2.Foundation': '8-10 years',
+            '3.Building': '11-13 years',
+            '4.Standard': '14-15 years'
+        };
+
+        // Simplified reading skills labels
+        const readingSkillsSimple = {
+            'audience_purpose_viewpoint': 'Audience, purpose, point-of-view',
+            'reliability_credibility': 'Reliability and credibility',
+            'important_ideas': 'Identifying important ideas',
+            'text_structures_links': 'Making links within texts',
+            'vocabulary_meaning': 'Vocabulary meaning'
+        };
+
+        // Reading skills tracking with detailed descriptions
+        const readingSkills = {
+            'audience_purpose_viewpoint': {
+                name: 'Audience, Purpose, and Writer Point-of-View',
+                description: 'Identify and make links between audience, purpose, and writer point-of-view'
+            },
+            'reliability_credibility': {
+                name: 'Reliability and Credibility',
+                description: 'Evaluate the reliability and credibility of the text and/or writer, considering bias, stereotypes, missing or contradictory information'
+            },
+            'important_ideas': {
+                name: 'Important Ideas',
+                description: 'Identify important ideas in the text'
+            },
+            'text_structures_links': {
+                name: 'Text Structures and Links',
+                description: 'Make links within texts using text structures and language features, such as layout, headings, illustrations, cohesive devices'
+            },
+            'vocabulary_meaning': {
+                name: 'Vocabulary Meaning',
+                description: 'Identify the meaning of vocabulary essential to understanding the text (specialised, topic-specific, general, academic terms)'
+            }
+        };
+
+        const skillLevelDescriptions = {
+            'NYC': 'Not Yet Covered - This skill has not yet been covered sufficiently to generate an evaluation.',
+            'B': 'Beginning - You are beginning to develop an understanding of this skill.',
+            'D': 'Developing - You are developing an understanding of this skill.',
+            'A': 'Achieved - You have a good basic understanding of this skill.',
+            'M': 'Merit - You have a well-developed understanding of this skill.',
+            'E': 'Excellence - You have a strong understanding of this skill.'
+        };
+
+const callGeminiAPI = async (prompt) => {
+    try {
+        // 1. Grab the SDK from the global window object instead of importing it
+        const GoogleGenerativeAI = window.GoogleGenerativeAI;
+        
+        // Safety check just in case the user clicks the button before the CDN finishes loading
+        if (!GoogleGenerativeAI) {
+             console.warn("SDK loading...");
+             return { text: "The AI module is still downloading. Please wait a second and try again!" };
+        }
+
+        // 2. Initialize (Add your new test API key here)
+        const genAI = new GoogleGenerativeAI("AIzaSyBFgTYj0bVWNl9XmE99Li2fXHYV2ERZD9o");
+        const promptLower = prompt.toLowerCase();
+
+        // 3. Generate content based on the prompt type
+        if (promptLower.includes('question')) {
+            const jsonModel = genAI.getGenerativeModel({ 
+                model: "gemini-2.5-flash",
+                generationConfig: { responseMimeType: "application/json" }
+            });
+            
+            const jsonPrompt = `${prompt}
+            Please respond ONLY with a valid JSON object using this exact schema:
+            {
+                "question": "string",
+                "options": ["string", "string", "string", "string"],
+                "correct": number,
+                "explanation": "string",
+                "skill": "string"
+            }`;
+
+            const result = await jsonModel.generateContent(jsonPrompt);
+            return JSON.parse(result.response.text());
+
+        } else {
+            const textModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const result = await textModel.generateContent(prompt);
+            return { text: result.response.text() };
+        }
+
+    } catch (error) {
+        console.error("Local API Error details:", error);
+        throw error;
+    }
+};
+    
+
+
+        // Firebase initialization (mock)
+        const initializeFirebase = () => {
+            console.log("Firebase initialized (mock)");
+            return {
+                userId: "user_" + Math.random().toString(36).substr(2, 9),
+                saveProgress: async (data) => {
+                    localStorage.setItem('reading_progress', JSON.stringify(data));
+                },
+                loadProgress: async () => {
+                    const saved = localStorage.getItem('reading_progress');
+                    return saved ? JSON.parse(saved) : null;
+                }
+            };
+        };
+
+        // Generate sample progress data for demo
+        const generateSampleProgress = () => {
+            return {
+                textsCompleted: 9,
+                questionsAnswered: 54,
+                correctAnswers: 41,
+                skillLevels: {
+                    'audience_purpose_viewpoint': 'A',
+                    'reliability_credibility': 'D',
+                    'important_ideas': 'M',
+                    'text_structures_links': 'M',
+                    'vocabulary_meaning': 'A'
+                },
+                practiceAmount: {
+                    'audience_purpose_viewpoint': 12,
+                    'reliability_credibility': 8,
+                    'important_ideas': 15,
+                    'text_structures_links': 10,
+                    'vocabulary_meaning': 13
+                },
+                detailedFeedback: {
+                    'audience_purpose_viewpoint': 'You have identified the purpose of texts, considered intended audiences, and explained how a writer\'s perspective shapes their message.',
+                    'reliability_credibility': 'You recognised bias in multiple texts and considered how different perspectives influence reliability. You showed awareness of stereotypes in how Māori leadership was portrayed.',
+                    'important_ideas': 'You correctly identified key messages in all texts, such as concerns over land, tensions between settlers and Māori, and the justification of British control.',
+                    'text_structures_links': 'You successfully recognised common ideas across texts and demonstrated understanding of how layout and language features support meaning.',
+                    'vocabulary_meaning': 'You have shown good ability to understand specialised and academic vocabulary in context, with particular strength in interpreting historical and cultural terms.'
+                },
+                textHistory: [
+                    { type: 'narratives', readingAge: '4.Standard', textLength: '4.Standard', topic: 'New Zealand wildlife' },
+                    { type: 'information reports', readingAge: '4.Standard', textLength: '3.Building', topic: 'Climate change' },
+                    { type: 'descriptions', readingAge: '3.Building', textLength: '4.Standard', topic: 'Māori culture' },
+                    { type: 'instructions', readingAge: '4.Standard', textLength: '1.Basic', topic: 'Conservation efforts' },
+                    { type: 'argument', readingAge: '4.Standard', textLength: '4.Standard', topic: 'Renewable energy' },
+                    { type: 'persuasion', readingAge: '3.Building', textLength: '3.Building', topic: 'Ocean conservation' },
+                    { type: 'narratives', readingAge: '4.Standard', textLength: '4.Standard', topic: 'Cultural traditions' },
+                    { type: 'information reports', readingAge: '2.Foundation', textLength: '2.Foundation', topic: 'Space exploration' },
+                    { type: 'descriptions', readingAge: '4.Standard', textLength: '3.Building', topic: 'Modern technology' }
+                ]
+            };
+        };
+
+        // Analyze text types by reading level and text length with counts
+        const analyzeTextTypes = (textHistory) => {
+            const analysis = {};
+            
+            textHistory.forEach(text => {
+                // Group argument and persuasion together
+                const displayType = (text.type === 'argument' || text.type === 'persuasion') 
+                    ? 'argument/persuasion' 
+                    : text.type;
+                
+                if (!analysis[displayType]) {
+                    analysis[displayType] = {
+                        count: 0,
+                        readingLevels: {},
+                        textLengths: {},
+                        topics: []
+                    };
+                }
+                
+                analysis[displayType].count++;
+                analysis[displayType].readingLevels[text.readingAge] = (analysis[displayType].readingLevels[text.readingAge] || 0) + 1;
+                analysis[displayType].textLengths[text.textLength] = (analysis[displayType].textLengths[text.textLength] || 0) + 1;
+                analysis[displayType].topics.push(text.topic);
+            });
+            
+            return analysis;
+        };
+
+        // Content Warning Modal Component
+        function ContentWarningModal({ isOpen, onClose, message }) {
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black/50 modal-backdrop flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl max-w-md overflow-hidden">
+                        <div className="bg-orange-500 text-white p-6">
+                            <h2 className="text-2xl font-bold">⚠️ Topic Not Suitable</h2>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-gray-700 mb-4">{message}</p>
+                            <button
+                                onClick={onClose}
+                                className="w-full bg-nz-blue text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-700 transition-all"
+                            >
+                                Choose a Different Topic
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Progress Report Modal Component
+        function ProgressReportModal({ isOpen, onClose }) {
+            const { progress, firebase } = useContext(AppContext);
+            const [reportData, setReportData] = useState(null);
+
+            useEffect(() => {
+                if (isOpen) {
+                    const sampleData = generateSampleProgress();
+                    setReportData(sampleData);
+                }
+            }, [isOpen]);
+
+            const generateReportText = () => {
+                if (!reportData) return '';
+
+                const overallPercentage = Math.round((reportData.correctAnswers / reportData.questionsAnswered) * 100);
+                const date = new Date().toLocaleDateString('en-NZ');
+                const textAnalysis = analyzeTextTypes(reportData.textHistory);
+
+                return `📚 AI Reading Skills Tutor - Progress Report
+Generated: ${date}
+Student ID: ${firebase?.userId || 'N/A'}
+
+🎯 OVERALL SUMMARY
+You have completed ${reportData.textsCompleted} texts and answered ${reportData.questionsAnswered} questions with ${overallPercentage}% accuracy. Ka pai! Your reading comprehension skills are developing well across multiple areas. You show particular strength in identifying important ideas and making text connections, with good progress in understanding audience and purpose.
+
+📖 DETAILED TEXT TYPE ANALYSIS
+${Object.entries(textAnalysis).map(([type, data]) => {
+    const readingLevelsUsed = Object.entries(data.readingLevels)
+        .map(([level, count]) => `${level.split('.')[1]} - ${count} completed`)
+        .join(', ');
+    const textLengthsUsed = Object.entries(data.textLengths)
+        .map(([length, count]) => `${length.split('.')[1]} - ${count} completed`)
+        .join(', ');
+    
+    return `${type.toUpperCase()}: ${data.count} texts completed
+• Reading levels used: ${readingLevelsUsed}
+• Text lengths used: ${textLengthsUsed}
+• Topics covered: ${data.topics.join(', ')}`;
+}).join('\n\n')}
+
+📊 READING LEVEL & TEXT LENGTH SUMMARY
+Reading levels practiced: ${[...new Set(reportData.textHistory.map(t => t.readingAge))].join(', ')}
+Text lengths practiced: ${[...new Set(reportData.textHistory.map(t => t.textLength))].join(', ')}
+
+Detailed text history:
+${reportData.textHistory.map((text, index) => 
+    `Text ${index + 1}: ${text.type} | ${text.readingAge} (${readingAgeMappings[text.readingAge]}) | ${text.textLength} (${textLengthMappings[text.textLength]}) | Topic: ${text.topic}`
+).join('\n')}
+
+📊 DETAILED SKILL EVALUATION
+
+${Object.entries(readingSkills).map(([skillKey, skill]) => {
+    const level = reportData.skillLevels[skillKey] || 'NYC';
+    const practiceCount = reportData.practiceAmount[skillKey] || 0;
+    const feedback = reportData.detailedFeedback[skillKey] || 'No specific feedback available yet.';
+    
+    return `${skill.name.toUpperCase()}
+• Practice so far: ${practiceCount} questions completed
+• Skill Level: ${level} (${skillLevelDescriptions[level]})
+• Detailed feedback: ${feedback}
+`;
+}).join('\n')}
+
+🌟 RECOMMENDATIONS
+• Continue practising reliability and credibility evaluation - this skill is developing well
+• Keep up the excellent work on identifying important ideas
+• Your understanding of text structures is strong - apply this to more complex texts
+• Well done on your vocabulary comprehension - this supports all other reading skills
+• Try more challenging text lengths and reading levels to further develop your skills
+
+Kia kaha! Keep up the great mahi with your reading practice!
+
+---
+Generated by AI Reading Skills Tutor | New Zealand Curriculum Aligned`;
+            };
+
+            const handleShare = (platform) => {
+                const reportText = generateReportText();
+                const encodedText = encodeURIComponent(reportText);
+                const subject = encodeURIComponent('My Reading Skills Progress Report');
+
+                switch (platform) {
+                    case 'email':
+                        window.open(`mailto:?subject=${subject}&body=${encodedText}`);
+                        break;
+                    case 'whatsapp':
+                        window.open(`https://wa.me/?text=${encodedText}`);
+                        break;
+                    case 'messenger':
+                        navigator.clipboard.writeText(reportText);
+                        window.open(`https://www.messenger.com/`);
+                        break;
+                    case 'classroom':
+                        navigator.clipboard.writeText(reportText);
+                        window.open('https://classroom.google.com/');
+                        break;
+                    case 'drive':
+                        navigator.clipboard.writeText(reportText);
+                        window.open('https://drive.google.com/');
+                        break;
+                    case 'copy':
+                        navigator.clipboard.writeText(reportText);
+                        alert('Report copied to clipboard! You can now paste it anywhere.');
+                        break;
+                }
+            };
+
+            const handlePrint = () => {
+                const printWindow = window.open('', '_blank');
+                const reportText = generateReportText();
+                const htmlContent = `
+                    <html>
+                        <head>
+                            <title>Reading Skills Progress Report</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+                                h1 { color: #003f7f; border-bottom: 2px solid #003f7f; padding-bottom: 10px; }
+                                .skill-section { margin: 20px 0; padding: 15px; border-left: 4px solid #00a86b; background: #f9f9f9; }
+                                .skill-title { font-weight: bold; color: #003f7f; margin-bottom: 10px; }
+                                pre { white-space: pre-wrap; font-family: inherit; }
+                            </style>
+                        </head>
+                        <body>
+                            <pre>${reportText}</pre>
+                        </body>
+                    </html>
+                `;
+                printWindow.document.write(htmlContent);
+                printWindow.document.close();
+                printWindow.print();
+            };
+
+            if (!isOpen) return null;
+
+            const textAnalysis = reportData?.textHistory ? analyzeTextTypes(reportData.textHistory) : {};
+
+            return (
+                <div className="fixed inset-0 bg-black/50 modal-backdrop flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+                        <div className="bg-nz-blue text-white p-6 flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">📊 Your Reading Skills Report</h2>
+                            <button
+                                onClick={onClose}
+                                className="text-white hover:text-gray-200 text-2xl"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {reportData && (
+                                <div className="space-y-6">
+                                    {/* Overall Summary */}
+                                    <div className="bg-blue-50 rounded-lg p-4">
+                                        <h3 className="text-lg font-bold text-nz-blue mb-3">🎯 Overall Summary</h3>
+                                        <p className="text-gray-700 leading-relaxed">
+                                            You have completed <strong>{reportData.textsCompleted} texts</strong> and answered <strong>{reportData.questionsAnswered} questions</strong> with <strong>{Math.round((reportData.correctAnswers / reportData.questionsAnswered) * 100)}% accuracy</strong>. Ka pai! Your reading comprehension skills are developing well across multiple areas. You show particular strength in identifying important ideas and making text connections, with good progress in understanding audience and purpose.
+                                        </p>
+                                    </div>
+
+                                    {/* Detailed Text Type Analysis */}
+                                    <div className="bg-green-50 rounded-lg p-4">
+                                        <h3 className="text-lg font-bold text-green-800 mb-4">📖 Detailed Text Type Analysis</h3>
+                                        <div className="space-y-4">
+                                            {Object.entries(textAnalysis).map(([type, data]) => (
+                                                <div key={type} className="bg-white rounded-lg p-4 border border-green-200">
+                                                    <h4 className="font-bold text-green-700 mb-2 capitalize">{type}: {data.count} completed</h4>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                                        <div>
+                                                            <strong>Reading Levels:</strong>
+                                                            <div className="ml-2">
+                                                                {Object.entries(data.readingLevels).map(([level, count]) => (
+                                                                    <div key={level}>{level.split('.')[1]} - {count} completed</div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <strong>Text Lengths:</strong>
+                                                            <div className="ml-2">
+                                                                {Object.entries(data.textLengths).map(([length, count]) => (
+                                                                    <div key={length}>{length.split('.')[1]} - {count} completed</div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-2 text-sm">
+                                                        <strong>Topics:</strong> {data.topics.join(', ')}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Reading Level & Text Length Summary */}
+                                    <div className="bg-yellow-50 rounded-lg p-4">
+                                        <h3 className="text-lg font-bold text-yellow-800 mb-4">📊 Reading Level & Text Length Summary</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <h4 className="font-medium text-yellow-700 mb-2">Reading Levels Practiced:</h4>
+                                                <div className="space-y-1">
+                                                    {[...new Set(reportData.textHistory.map(t => t.readingAge))].map(level => (
+                                                        <div key={level} className="text-sm">
+                                                            {level} ({readingAgeMappings[level]})
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-medium text-yellow-700 mb-2">Text Lengths Practiced:</h4>
+                                                <div className="space-y-1">
+                                                    {[...new Set(reportData.textHistory.map(t => t.textLength))].map(length => (
+                                                        <div key={length} className="text-sm">
+                                                            {length} ({textLengthMappings[length]})
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mt-4 max-h-32 overflow-y-auto bg-white rounded p-3">
+                                            <h4 className="font-medium text-yellow-700 mb-2">Complete Text History:</h4>
+                                            {reportData.textHistory.map((text, index) => (
+                                                <div key={index} className="text-xs mb-1 text-gray-600">
+                                                    <strong>Text {index + 1}:</strong> {text.type} | {text.readingAge} ({readingAgeMappings[text.readingAge]}) | {text.textLength} ({textLengthMappings[text.textLength]}) | {text.topic}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Detailed Skills */}
+                                    <div>
+                                        <h3 className="text-lg font-bold text-nz-blue mb-4">📚 Detailed Skill Evaluation</h3>
+                                        <div className="space-y-4">
+                                            {Object.entries(readingSkills).map(([skillKey, skill]) => {
+                                                const level = reportData.skillLevels[skillKey] || 'NYC';
+                                                const practiceCount = reportData.practiceAmount[skillKey] || 0;
+                                                const feedback = reportData.detailedFeedback[skillKey] || 'No specific feedback available yet.';
+                                                
+                                                return (
+                                                    <div key={skillKey} className="border border-gray-200 rounded-lg p-4">
+                                                        <h4 className="font-bold text-gray-800 mb-2">{skill.name}</h4>
+                                                        <div className="text-sm text-gray-600 mb-3">{skill.description}</div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                                            <div>
+                                                                <span className="font-medium">Practice so far:</span> {practiceCount} questions completed
+                                                            </div>
+                                                            <div>
+                                                                <span className="font-medium">Skill Level:</span> 
+                                                                <span className={`ml-2 px-2 py-1 rounded text-xs font-bold ${
+                                                                    level === 'E' ? 'bg-green-100 text-green-800' :
+                                                                    level === 'M' ? 'bg-blue-100 text-blue-800' :
+                                                                    level === 'A' ? 'bg-yellow-100 text-yellow-800' :
+                                                                    level === 'D' ? 'bg-orange-100 text-orange-800' :
+                                                                    level === 'B' ? 'bg-red-100 text-red-800' :
+                                                                    'bg-gray-100 text-gray-800'
+                                                                }`}>
+                                                                    {level}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-sm">
+                                                            <span className="font-medium">Detailed feedback:</span> {feedback}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Recommendations */}
+                                    <div className="bg-purple-50 rounded-lg p-4">
+                                        <h3 className="text-lg font-bold text-purple-800 mb-3">🌟 Recommendations</h3>
+                                        <ul className="text-purple-700 space-y-2">
+                                            <li>• Continue practising reliability and credibility evaluation - this skill is developing well</li>
+                                            <li>• Keep up the excellent work on identifying important ideas</li>
+                                            <li>• Your understanding of text structures is strong - apply this to more complex texts</li>
+                                            <li>• Well done on your vocabulary comprehension - this supports all other reading skills</li>
+                                            <li>• Try more challenging text lengths and reading levels to further develop your skills</li>
+                                        </ul>
+                                        <p className="mt-4 font-medium text-purple-800">Kia kaha! Keep up the great mahi with your reading practice!</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Sharing Options */}
+                        <div className="bg-gray-50 p-6 border-t">
+                            <h3 className="text-lg font-bold mb-4">📤 Share Your Report</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <button
+                                    onClick={() => handleShare('email')}
+                                    className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    📧 Email
+                                </button>
+                                <button
+                                    onClick={() => handleShare('whatsapp')}
+                                    className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                                >
+                                    📱 WhatsApp
+                                </button>
+                                <button
+                                    onClick={() => handleShare('classroom')}
+                                    className="flex items-center justify-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+                                >
+                                    🎓 Classroom
+                                </button>
+                                <button
+                                    onClick={() => handleShare('drive')}
+                                    className="flex items-center justify-center gap-2 bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
+                                >
+                                    📁 Drive
+                                </button>
+                                <button
+                                    onClick={() => handleShare('copy')}
+                                    className="flex items-center justify-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                                >
+                                    📋 Copy
+                                </button>
+                                <button
+                                    onClick={handlePrint}
+                                    className="flex items-center justify-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                                >
+                                    🖨️ Print
+                                </button>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-3">
+                                Share your progress with teachers and whānau to celebrate your learning journey!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Layout Mode Switch Component
+        function LayoutModeSwitch() {
+            const { settings, setSettings } = useContext(AppContext);
+            
+            return (
+                <div className="mode-switch">
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={() => setSettings(prev => ({ ...prev, layoutMode: 'sequential' }))}
+                            className={`p-2 rounded-lg transition-all ${
+                                settings.layoutMode === 'sequential' 
+                                    ? 'bg-white/30' 
+                                    : 'bg-white/10 hover:bg-white/20'
+                            }`}
+                            title="Sequential Layout"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="3" y="4" width="18" height="6" rx="1" fillOpacity="0.3"/>
+                                <rect x="3" y="14" width="18" height="6" rx="1" fillOpacity="0.7"/>
+                            </svg>
+                        </button>
+                        <button
+                            onClick={() => setSettings(prev => ({ ...prev, layoutMode: 'sideBySide' }))}
+                            className={`p-2 rounded-lg transition-all ${
+                                settings.layoutMode === 'sideBySide' 
+                                    ? 'bg-white/30' 
+                                    : 'bg-white/10 hover:bg-white/20'
+                            }`}
+                            title="Side-by-Side Layout"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="3" y="4" width="8" height="16" rx="1" fillOpacity="0.3"/>
+                                <rect x="13" y="4" width="8" height="16" rx="1" fillOpacity="0.7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // Layout Thumbnail Component
+        function LayoutThumbnail({ mode, title, description, isSelected, onClick }) {
+            return (
+                <div
+                    onClick={onClick}
+                    className={`layout-thumbnail cursor-pointer rounded-xl p-4 ${
+                        isSelected ? 'selected' : ''
+                    }`}
+                >
+                    <div className="bg-white/10 rounded-lg p-4 mb-3">
+                        {mode === 'sequential' ? (
+                            <div className="space-y-2">
+                                <div className="bg-white/40 h-8 rounded"></div>
+                                <div className="bg-white/40 h-2 rounded w-3/4"></div>
+                                <div className="bg-white/40 h-2 rounded w-1/2"></div>
+                                <div className="mt-4 bg-white/60 h-6 rounded"></div>
+                                <div className="bg-white/60 h-2 rounded w-2/3"></div>
+                            </div>
+                        ) : (
+                            <div className="flex space-x-2 h-16">
+                                <div className="flex-1 space-y-1">
+                                    <div className="bg-white/40 h-2 rounded"></div>
+                                    <div className="bg-white/40 h-2 rounded w-3/4"></div>
+                                    <div className="bg-white/40 h-2 rounded w-1/2"></div>
+                                    <div className="bg-white/40 h-2 rounded w-5/6"></div>
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                    <div className="bg-white/60 h-3 rounded"></div>
+                                    <div className="bg-white/60 h-2 rounded w-2/3"></div>
+                                    <div className="bg-white/60 h-2 rounded w-3/4"></div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <h4 className="font-bold text-center mb-1">{title}</h4>
+                    <p className="text-sm opacity-75 text-center">{description}</p>
+                </div>
+            );
+        }
+
+        // Further Settings Dropdown Component
+        function FurtherSettingsDropdown({ settings, setSettings }) {
+            const [isOpen, setIsOpen] = useState(false);
+            
+            return (
+                <div className="mb-6">
+                    <button
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="w-full flex justify-between items-center font-semibold mb-3 py-2 px-4 bg-white/10 rounded-lg hover:bg-white/20 transition-all"
+                    >
+                        <span>⚡ Further Settings</span>
+                        <svg 
+                            className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    
+                    <div className={`dropdown-content ${isOpen ? 'open' : ''}`}>
+                        <div className="space-y-4 pl-4">
+                            {/* Font Size */}
+                            <div>
+                                <h5 className="font-bold section-heading mb-2">📱 Font Size</h5>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {['Small', 'Medium', 'Large'].map(size => (
+                                        <button
+                                            key={size}
+                                            onClick={() => setSettings(prev => ({ ...prev, fontSize: size }))}
+                                            className={`py-2 px-3 rounded-lg font-medium button-hover transition-all ${
+                                                settings.fontSize === size
+                                                    ? 'bg-white text-nz-blue shadow-lg'
+                                                    : 'bg-white/20 hover:bg-white/30'
+                                            }`}
+                                        >
+                                            {size}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Contrast */}
+                            <div>
+                                <h5 className="font-bold section-heading mb-2">🎨 Contrast</h5>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {['Low', 'Medium', 'High'].map(contrast => (
+                                        <button
+                                            key={contrast}
+                                            onClick={() => setSettings(prev => ({ ...prev, contrast: contrast }))}
+                                            className={`py-2 px-3 rounded-lg font-medium button-hover transition-all ${
+                                                settings.contrast === contrast
+                                                    ? 'bg-white text-nz-blue shadow-lg'
+                                                    : 'bg-white/20 hover:bg-white/30'
+                                            }`}
+                                        >
+                                            {contrast}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-xs opacity-70 mt-2">
+                                    High contrast provides enhanced visibility for better accessibility
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Main App Component
+        function App() {
+            const [currentStep, setCurrentStep] = useState('welcome');
+            const [settings, setSettings] = useState({
+                readingAge: '4.Standard',
+                textLength: '4.Standard',
+                topic: '',
+                questionFormat: 'Multi-choice',
+                layoutMode: 'sideBySide',
+                fontSize: 'Small',
+                contrast: 'Medium'
+            });
+            const [currentText, setCurrentText] = useState('');
+            const [currentQuestion, setCurrentQuestion] = useState(null);
+            const [questionIndex, setQuestionIndex] = useState(0);
+            const [textCount, setTextCount] = useState(0);
+            const [currentTextType, setCurrentTextType] = useState(0);
+            const [progress, setProgress] = useState({
+                session: { correct: 0, total: 0 },
+                overall: { 
+                    textsCompleted: 0, 
+                    skillLevels: {},
+                    textHistory: []
+                }
+            });
+            const [isLoading, setIsLoading] = useState(false);
+            const [firebase, setFirebase] = useState(null);
+            const [backgroundTheme, setBackgroundTheme] = useState('bg-gradient-to-br from-nz-blue via-blue-500 to-nz-green');
+            const [isOffline, setIsOffline] = useState(false);
+            const [showProgressReport, setShowProgressReport] = useState(false);
+            const [showContentWarning, setShowContentWarning] = useState(false);
+            const [contentWarningMessage, setContentWarningMessage] = useState('');
+
+            useEffect(() => {
+                const fb = initializeFirebase();
+                setFirebase(fb);
+                loadProgress();
+
+                // Check online status
+                const handleOnline = () => setIsOffline(false);
+                const handleOffline = () => setIsOffline(true);
+                
+                window.addEventListener('online', handleOnline);
+                window.addEventListener('offline', handleOffline);
+                setIsOffline(!navigator.onLine);
+
+                return () => {
+                    window.removeEventListener('online', handleOnline);
+                    window.removeEventListener('offline', handleOffline);
+                };
+            }, []);
+
+            const loadProgress = async () => {
+                if (firebase) {
+                    const saved = await firebase.loadProgress();
+                    if (saved) {
+                        setProgress(prev => ({ ...prev, overall: saved }));
+                        setTextCount(saved.textsCompleted || 0);
+                        setCurrentTextType((saved.textsCompleted || 0) % textTypes.length);
+                    }
+                }
+            };
+
+            const saveProgress = async () => {
+                if (firebase) {
+                    await firebase.saveProgress(progress.overall);
+                }
+            };
+
+            const generateText = async () => {
+                // Validate topic before generating
+                const topicValidation = validateTopic(settings.topic);
+                if (!topicValidation.valid) {
+                    setContentWarningMessage(topicValidation.message);
+                    setShowContentWarning(true);
+                    return;
+                }
+
+                setIsLoading(true);
+                
+                try {
+                    const prompt = `Generate a ${settings.textLength.split('.')[1].toLowerCase()} ${textTypes[currentTextType]} text about ${settings.topic || 'a topic interesting to teenagers'} suitable for reading age ${settings.readingAge.split('.')[1].toLowerCase()}. The content must be appropriate for 14-15 year old students in an educational setting.`;
+                    
+                    let response;
+                    if (isOffline) {
+                        // Offline fallback content
+                        response = {
+                            text: `New Zealand's Unique Wildlife
+
+New Zealand is home to many unique animals that cannot be found anywhere else in the world. These special creatures evolved over millions of years in isolation, making them truly one-of-a-kind.
+
+The kiwi bird is perhaps New Zealand's most famous native animal. These flightless birds are about the size of a chicken but have long beaks for finding insects and worms in the soil. Kiwis are nocturnal, which means they are active at night and sleep during the day.
+
+Another remarkable native bird is the kea, the world's only alpine parrot. Keas are incredibly intelligent and curious birds that live in the South Island's mountains. They are known for their playful behaviour and problem-solving abilities, though they can sometimes be mischievous around tourists!
+
+The tuatara is New Zealand's most ancient native reptile. These lizard-like creatures are actually living fossils that have remained virtually unchanged for over 200 million years. They can live for more than 100 years and grow throughout their entire lives.
+
+Unfortunately, many of New Zealand's native species face threats from introduced predators and habitat loss, making conservation efforts extremely important for protecting these special animals for future generations.`
+                        };
+                    } else {
+                        response = await callGeminiAPI(prompt);
+                    }
+                    
+                    setCurrentText(response.text);
+                    setTextCount(prev => prev + 1);
+                    
+                    // Record this text in history
+                    const textRecord = {
+                        type: textTypes[currentTextType],
+                        readingAge: settings.readingAge,
+                        textLength: settings.textLength,
+                        topic: settings.topic || 'General topic'
+                    };
+                    
+                    setProgress(prev => ({
+                        ...prev,
+                        overall: {
+                            ...prev.overall,
+                            textHistory: [...(prev.overall.textHistory || []), textRecord]
+                        }
+                    }));
+                    
+                    setCurrentTextType((currentTextType + 1) % textTypes.length);
+                    setCurrentStep(settings.layoutMode === 'sideBySide' ? 'sideBySide' : 'reading');
+                    setQuestionIndex(0);
+                    
+                    // Update background theme
+                    const newTheme = getBackgroundTheme(settings.topic);
+                    setBackgroundTheme(newTheme);
+                    
+                    // If side-by-side mode, also generate first question
+                    if (settings.layoutMode === 'sideBySide') {
+                        generateQuestion();
+                    }
+                    
+                } catch (error) {
+                    console.error('Error generating text:', error);
+                    setCurrentStep('error');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const generateQuestion = async () => {
+                setIsLoading(true);
+                
+                try {
+                    const prompt = `Generate question ${questionIndex + 1} about the text for ${settings.questionFormat} format, reading age ${settings.readingAge.split('.')[1]}. Ensure the question is age-appropriate for 14-15 year old students.`;
+                    
+                    let response;
+                    if (isOffline) {
+                        const questions = [
+                            {
+                                question: "What makes New Zealand's native animals special?",
+                                options: ["They are very large", "They cannot be found anywhere else in the world", "They all fly", "They are all the same colour"],
+                                correct: 1,
+                                explanation: "New Zealand's native animals are special because they evolved in isolation and cannot be found anywhere else in the world.",
+                                skill: 'important_ideas'
+                            },
+                            {
+                                question: "When are kiwi birds most active?",
+                                options: ["During the morning", "During the afternoon", "At night", "All day long"],
+                                correct: 2,
+                                explanation: "Kiwi birds are nocturnal, which means they are active at night and sleep during the day.",
+                                skill: 'vocabulary_meaning'
+                            },
+                            {
+                                question: "What type of animal is a kea?",
+                                options: ["A reptile", "A parrot", "A mammal", "A fish"],
+                                correct: 1,
+                                explanation: "A kea is a parrot - specifically, the world's only alpine parrot that lives in New Zealand's South Island mountains.",
+                                skill: 'important_ideas'
+                            },
+                            {
+                                question: "How long can tuataras live?",
+                                options: ["About 10 years", "More than 100 years", "Around 50 years", "Less than 5 years"],
+                                correct: 1,
+                                explanation: "Tuataras can live for more than 100 years, making them some of the longest-living reptiles in the world.",
+                                skill: 'important_ideas'
+                            },
+                            {
+                                question: "What threatens New Zealand's native species?",
+                                options: ["Cold weather", "Too much sunlight", "Introduced predators and habitat loss", "Ocean pollution"],
+                                correct: 2,
+                                explanation: "New Zealand's native species face threats from introduced predators and habitat loss, which is why conservation efforts are so important.",
+                                skill: 'reliability_credibility'
+                            },
+                            {
+                                question: "How long have tuataras remained virtually unchanged?",
+                                options: ["50 million years", "Over 200 million years", "10 million years", "1 million years"],
+                                correct: 1,
+                                explanation: "Tuataras are living fossils that have remained virtually unchanged for over 200 million years, making them incredibly ancient creatures.",
+                                skill: 'vocabulary_meaning'
+                            }
+                        ];
+                        response = questions[questionIndex % questions.length];
+                    } else {
+                        response = await callGeminiAPI(prompt);
+                    }
+                    
+                    setCurrentQuestion(response);
+                    
+                    if (settings.layoutMode !== 'sideBySide') {
+                        setCurrentStep('question');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error generating question:', error);
+                    setCurrentStep('error');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleAnswer = (answer) => {
+                const isCorrect = answer === currentQuestion.correct;
+                
+                setProgress(prev => ({
+                    ...prev,
+                    session: {
+                        correct: prev.session.correct + (isCorrect ? 1 : 0),
+                        total: prev.session.total + 1
+                    }
+                }));
+
+                if (isCorrect || questionIndex >= 5) {
+                    if (questionIndex < 5) {
+                        setQuestionIndex(prev => prev + 1);
+                        generateQuestion();
+                    } else {
+                        setCurrentStep('textComplete');
+                        setProgress(prev => ({
+                            ...prev,
+                            overall: {
+                                ...prev.overall,
+                                textsCompleted: prev.overall.textsCompleted + 1
+                            }
+                        }));
+                        saveProgress();
+                    }
+                }
+            };
+
+            const getFontSizeClass = () => {
+                switch (settings.fontSize) {
+                    case 'Medium': return 'text-medium';
+                    case 'Large': return 'text-large';
+                    default: return 'text-small';
+                }
+            };
+
+            const getContrastClass = () => {
+                switch (settings.contrast) {
+                    case 'Medium': return 'contrast-medium';
+                    case 'High': return 'contrast-high';
+                    default: return 'contrast-low';
+                }
+            };
+
+            const contextValue = {
+                currentStep,
+                setCurrentStep,
+                settings,
+                setSettings,
+                currentText,
+                currentQuestion,
+                questionIndex,
+                textCount,
+                progress,
+                isLoading,
+                firebase,
+                backgroundTheme,
+                isOffline,
+                generateText,
+                generateQuestion,
+                handleAnswer,
+                showProgressReport,
+                setShowProgressReport
+            };
+
+            return (
+                <AppContext.Provider value={contextValue}>
+                    <div className={`min-h-screen background-transition ${backgroundTheme} text-white ${getFontSizeClass()} ${getContrastClass()}`}>
+                        {currentStep !== 'welcome' && <LayoutModeSwitch />}
+                        <div className="container mx-auto px-8 py-6">
+                            <Header />
+                            <MainContent />
+                        </div>
+                        <ProgressReportModal 
+                            isOpen={showProgressReport} 
+                            onClose={() => setShowProgressReport(false)} 
+                        />
+                        <ContentWarningModal 
+                            isOpen={showContentWarning} 
+                            onClose={() => setShowContentWarning(false)}
+                            message={contentWarningMessage}
+                        />
+                    </div>
+                </AppContext.Provider>
+            );
+        }
+
+        // Header Component
+        function Header() {
+            const { firebase, isOffline } = useContext(AppContext);
+            
+            return (
+                <header className="mb-8">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h1 className="text-4xl font-bold text-shadow mb-2">
+                                📚 AI Reading Skills Tutor
+                            </h1>
+                            <p className="text-lg opacity-90">Enhance your reading comprehension skills</p>
+                        </div>
+                        <div className="text-right">
+                            {isOffline && (
+                                <div className="bg-yellow-500 text-black px-3 py-1 rounded-full text-sm mb-2">
+                                    📶 Offline Mode
+                                </div>
+                            )}
+                            {firebase && (
+                                <div className="text-sm opacity-75">
+                                    User ID: {firebase.userId}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </header>
+            );
+        }
+
+        // Main Content Component
+        function MainContent() {
+            const { currentStep } = useContext(AppContext);
+            
+            switch (currentStep) {
+                case 'welcome':
+                    return <WelcomeScreen />;
+                case 'reading':
+                    return <ReadingScreen />;
+                case 'question':
+                    return <QuestionScreen />;
+                case 'sideBySide':
+                    return <SideBySideScreen />;
+                case 'textComplete':
+                    return <TextCompleteScreen />;
+                case 'error':
+                    return <ErrorScreen />;
+                default:
+                    return <WelcomeScreen />;
+            }
+        }
+
+        // Welcome Screen Component
+        function WelcomeScreen() {
+            const { settings, setSettings, generateText, isLoading } = useContext(AppContext);
+            
+            return (
+                <div className="max-w-6xl mx-auto fade-in">
+                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8">
+                        <h2 className="text-2xl font-bold mb-4 text-center">
+                            🌟 Kia ora! I'm your AI Reading Tutor! 🌟
+                        </h2>
+                        <p className="text-lg text-center mb-6 opacity-90">
+                            I'm absolutely thrilled to help you improve your reading skills! You can either click 'Generate Text' to start with default settings, or customise your preferences below first. Let's embark on this learning journey together!
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Settings Panel */}
+                        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
+                            <h3 className="text-xl font-bold mb-6">⚙️ Customise Your Experience</h3>
+                            
+                            {/* Layout Mode Selection */}
+                            <div className="mb-6">
+                                <h4 className="font-bold section-heading mb-3">📱 Display Layout</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <LayoutThumbnail
+                                        mode="sequential"
+                                        title="Sequential"
+                                        description="Text first, then questions"
+                                        isSelected={settings.layoutMode === 'sequential'}
+                                        onClick={() => setSettings(prev => ({ ...prev, layoutMode: 'sequential' }))}
+                                    />
+                                    <LayoutThumbnail
+                                        mode="sideBySide"
+                                        title="Side-by-Side"
+                                        description="Text and questions together"
+                                        isSelected={settings.layoutMode === 'sideBySide'}
+                                        onClick={() => setSettings(prev => ({ ...prev, layoutMode: 'sideBySide' }))}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Reading Age */}
+                            <div className="mb-6">
+                                <h4 className="font-bold section-heading mb-3">📚 Reading Level</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['1.Basic', '2.Foundation', '3.Building', '4.Standard'].map(age => (
+                                        <button
+                                            key={age}
+                                            onClick={() => setSettings(prev => ({ ...prev, readingAge: age }))}
+                                            className={`py-2 px-4 rounded-lg font-medium button-hover transition-all ${
+                                                settings.readingAge === age
+                                                    ? 'bg-white text-nz-blue shadow-lg'
+                                                    : 'bg-white/20 hover:bg-white/30'
+                                            }`}
+                                        >
+                                            {age}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-xs opacity-70 mt-2">
+                                    {readingAgeMappings[settings.readingAge]}
+                                </p>
+                            </div>
+
+                            {/* Text Length */}
+                            <div className="mb-6">
+                                <h4 className="font-bold section-heading mb-3">📏 Text Length</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['1.Basic', '2.Foundation', '3.Building', '4.Standard'].map(length => (
+                                        <button
+                                            key={length}
+                                            onClick={() => setSettings(prev => ({ ...prev, textLength: length }))}
+                                            className={`py-2 px-4 rounded-lg font-medium button-hover transition-all ${
+                                                settings.textLength === length
+                                                    ? 'bg-white text-nz-blue shadow-lg'
+                                                    : 'bg-white/20 hover:bg-white/30'
+                                            }`}
+                                        >
+                                            {length}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-xs opacity-70 mt-2">
+                                    {textLengthMappings[settings.textLength]}
+                                </p>
+                            </div>
+
+                            {/* Question Format */}
+                            <div className="mb-6">
+                                <h4 className="font-bold section-heading mb-3">❓ Question Style</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['Multi-choice', 'Short answer'].map(format => (
+                                        <button
+                                            key={format}
+                                            onClick={() => setSettings(prev => ({ ...prev, questionFormat: format }))}
+                                            className={`py-2 px-4 rounded-lg font-medium button-hover transition-all ${
+                                                settings.questionFormat === format
+                                                    ? 'bg-white text-nz-blue shadow-lg'
+                                                    : 'bg-white/20 hover:bg-white/30'
+                                            }`}
+                                        >
+                                            {format}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Topic Selection */}
+                            <div className="mb-6">
+                                <h4 className="font-bold section-heading mb-3">🎯 Choose Your Topic (Optional)</h4>
+                                <input
+                                    type="text"
+                                    value={settings.topic}
+                                    onChange={(e) => {
+                                        if (e.target.value.split(' ').length <= 20) {
+                                            setSettings(prev => ({ ...prev, topic: e.target.value }));
+                                        }
+                                    }}
+                                    placeholder={`Try: ${sampleTopics[Math.floor(Math.random() * sampleTopics.length)]}`}
+                                    className="w-full py-3 px-4 rounded-lg bg-white/20 placeholder-white/70 text-white border-0 focus:ring-2 focus:ring-white/50 focus:outline-none"
+                                    maxLength="100"
+                                />
+                                <p className="text-sm opacity-70 mt-1">
+                                    Maximum 20 words. Leave blank for surprise topics!
+                                </p>
+                            </div>
+
+                            {/* Further Settings Dropdown */}
+                            <FurtherSettingsDropdown settings={settings} setSettings={setSettings} />
+                        </div>
+
+                        {/* Progress Panel */}
+                        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
+                            <ProgressDisplay />
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Progress Display Component
+        function ProgressDisplay() {
+            const { progress, setShowProgressReport, generateText, isLoading } = useContext(AppContext);
+            
+            // Get sample progress data for demo
+            const sampleProgress = generateSampleProgress();
+            const textAnalysis = analyzeTextTypes(sampleProgress.textHistory);
+            
+            return (
+                <div>
+                    <h3 className="text-xl font-bold mb-6">📈 Your Progress So Far</h3>
+                    
+                    <div className="space-y-4">
+                        {/* Current Session */}
+                        <div className="bg-white/20 rounded-lg p-4">
+                            <h4 className="font-semibold mb-2">Current Session</h4>
+                            <div className="text-2xl font-bold">
+                                {progress.session.correct} / {progress.session.total}
+                            </div>
+                            <div className="text-sm opacity-75">Questions Answered Correctly</div>
+                        </div>
+
+                        {/* Text Types Progress - REDESIGNED */}
+                        <div className="bg-white/20 rounded-lg p-4">
+                            <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
+                                {displayTextTypes.map(displayType => {
+                                    const data = textAnalysis[displayType];
+                                    const totalCount = data?.count || 0;
+                                    
+                                    // Get counts for each reading level and text length
+                                    const levelCounts = data?.readingLevels || {};
+                                    const lengthCounts = data?.textLengths || {};
+                                    
+                                    return (
+                                        <div key={displayType} className="pb-3 border-b border-white/20 last:border-0">
+                                            <div className="font-semibold capitalize mb-2">
+                                                {displayType}: {totalCount} completed
+                                            </div>
+                                            {totalCount > 0 && (
+                                                <div className="text-xs opacity-80 ml-2 space-y-1">
+                                                    <div>
+                                                        <span className="font-medium">Reading Levels:</span>{' '}
+                                                        {Object.entries(levelCounts).map(([level, count]) => 
+                                                            `${level.split('.')[1]} - ${count} completed`
+                                                        ).join(', ')}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium">Text Lengths:</span>{' '}
+                                                        {Object.entries(lengthCounts).map(([length, count]) => 
+                                                            `${length.split('.')[1]} - ${count} completed`
+                                                        ).join(', ')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        
+                        {/* Reading Skills Development */}
+                        <div className="bg-white/20 rounded-lg p-4">
+                            <h4 className="font-semibold mb-3">Reading Skills Development</h4>
+                            <div className="text-sm space-y-1">
+                                {Object.entries(readingSkillsSimple).map(([skillKey, skillLabel]) => (
+                                    <div key={skillKey} className="flex justify-between">
+                                        <span>{skillLabel}</span>
+                                        <span className="font-mono">
+                                            {sampleProgress.skillLevels?.[skillKey] || 'NYC'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <div className="text-center mt-4 p-3 bg-white/10 rounded-lg">
+                            <p className="text-sm opacity-80 mb-4">
+                                💪 Kia kaha! Keep practising to improve your reading skills!
+                            </p>
+                            
+                            {/* Progress Report Button */}
+                            <button
+                                onClick={() => setShowProgressReport(true)}
+                                className="w-full bg-nz-blue text-white py-3 px-4 rounded-2xl text-lg font-bold shadow-lg button-hover transition-all mb-4"
+                            >
+                                📊 View Full Report & Share
+                            </button>
+
+                            {/* Generate Text Button */}
+                            <button
+                                onClick={generateText}
+                                disabled={isLoading}
+                                className="w-full bg-white text-nz-blue py-3 px-4 rounded-2xl text-lg font-bold shadow-lg button-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isLoading ? '🔄 Generating...' : '🚀 Generate Text'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Side-by-Side Screen Component (FIXED FEEDBACK)
+        function SideBySideScreen() {
+            const { currentText, textCount, currentQuestion, questionIndex, setCurrentStep, handleAnswer } = useContext(AppContext);
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            const [showFeedback, setShowFeedback] = useState(false);
+            const [attempts, setAttempts] = useState(0);
+            const [feedbackType, setFeedbackType] = useState('');
+            const [canContinue, setCanContinue] = useState(false);
+            
+            const submitAnswer = () => {
+                if (selectedAnswer === null) return;
+                
+                const isCorrect = selectedAnswer === currentQuestion.correct;
+                const currentAttempt = attempts + 1;
+                
+                setShowFeedback(true);
+                setAttempts(currentAttempt);
+                setCanContinue(false);
+                
+                if (isCorrect) {
+                    setFeedbackType('correct');
+                    setCanContinue(true);
+                } else if (currentAttempt === 1) {
+                    setFeedbackType('tryAgain');
+                    setCanContinue(true);
+                } else {
+                    setFeedbackType('incorrect');
+                    setCanContinue(true);
+                }
+            };
+
+            const handleContinue = () => {
+                if (feedbackType === 'tryAgain') {
+                    setShowFeedback(false);
+                    setSelectedAnswer(null);
+                    setCanContinue(false);
+                } else {
+                    handleAnswer(selectedAnswer);
+                    resetQuestionState();
+                }
+            };
+
+            const resetQuestionState = () => {
+                setSelectedAnswer(null);
+                setShowFeedback(false);
+                setAttempts(0);
+                setFeedbackType('');
+                setCanContinue(false);
+            };
+
+            const getFeedbackMessage = () => {
+                if (feedbackType === 'correct') {
+                    return `✨ ${getRandomEncouragement()} That's correct!`;
+                } else if (feedbackType === 'tryAgain') {
+                    return 'Kāore, not quite right.';
+                } else if (feedbackType === 'incorrect') {
+                    return `That's not right. The correct answer is: ${currentQuestion.options[currentQuestion.correct]}`;
+                }
+                return '';
+            };
+
+            const getButtonText = () => {
+                if (feedbackType === 'tryAgain') {
+                    return 'Try Again';
+                } else if (feedbackType === 'correct' || feedbackType === 'incorrect') {
+                    return questionIndex >= 5 ? 'Complete Text' : 'Next Question';
+                }
+                return 'Continue';
+            };
+            
+            return (
+                <div className="max-w-7xl mx-auto fade-in">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold">📖 Text {textCount} - Question {questionIndex + 1} of 6</h2>
+                        <button
+                            onClick={() => setCurrentStep('welcome')}
+                            className="bg-white/20 hover:bg-white/30 py-2 px-4 rounded-lg button-hover transition-all"
+                        >
+                            ← Back to Settings
+                        </button>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="mb-6">
+                        <div className="bg-white/20 rounded-full h-3">
+                            <div 
+                                className="bg-white rounded-full h-3 progress-bar"
+                                style={{ width: `${((questionIndex + 1) / 6) * 100}%` }}
+                            ></div>
+                        </div>
+                        <p className="text-sm opacity-75 mt-2 text-center">
+                            Progress: {questionIndex + 1} of 6 questions - {getRandomEncouragement()}
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 responsive-height">
+                        {/* Text Panel */}
+                        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 overflow-y-auto">
+                            <h3 className="text-xl font-bold mb-4 sticky top-0 bg-white/10 backdrop-blur-lg py-2 rounded-lg">
+                                📄 Reading Text
+                            </h3>
+                            <div className="leading-relaxed whitespace-pre-line pr-4">
+                                {currentText}
+                            </div>
+                        </div>
+
+                        {/* Question Panel */}
+                        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 flex flex-col overflow-hidden">
+                            <h3 className="text-xl font-bold mb-4">❓ Question Time</h3>
+                            
+                            {currentQuestion ? (
+                                <div className="flex-1 flex flex-col overflow-hidden">
+                                    <div className="bg-white/20 rounded-xl p-4 mb-6 flex-1 overflow-y-auto">
+                                        <h4 className="text-lg font-bold mb-4">
+                                            {currentQuestion.question}
+                                        </h4>
+                                        
+                                        {currentQuestion.options && (
+                                            <div className="space-y-3">
+                                                {currentQuestion.options.map((option, index) => (
+                                                    <button
+                                                        key={index}
+                                                        onClick={() => setSelectedAnswer(index)}
+                                                        disabled={showFeedback}
+                                                        className={`w-full p-3 rounded-lg text-left button-hover transition-all ${
+                                                            selectedAnswer === index
+                                                                ? 'bg-white text-nz-blue shadow-lg'
+                                                                : 'bg-white/20 hover:bg-white/30'
+                                                        } ${showFeedback ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
+                                                    >
+                                                        <span className="font-semibold mr-2">
+                                                            {String.fromCharCode(97 + index)})
+                                                        </span>
+                                                        {option}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        
+                                        {showFeedback && (
+                                            <div className="mt-4 p-3 rounded-lg bg-white/30 fade-in">
+                                                <p className="font-semibold mb-2">
+                                                    {getFeedbackMessage()}
+                                                </p>
+                                                {feedbackType === 'tryAgain' ? (
+                                                    <p>Kia kaha! Have another go!</p>
+                                                ) : (
+                                                    <p>{currentQuestion.explanation}</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="flex-shrink-0 text-center pt-2">
+                                        {!showFeedback ? (
+                                            <button
+                                                onClick={submitAnswer}
+                                                disabled={selectedAnswer === null}
+                                                className="bg-white text-nz-blue py-3 px-6 rounded-xl font-bold shadow-lg button-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Submit Answer
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={handleContinue}
+                                                disabled={!canContinue}
+                                                className="bg-nz-green text-white py-3 px-6 rounded-xl font-bold shadow-lg button-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {getButtonText()}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex-1 flex items-center justify-center">
+                                    <div className="text-center">
+                                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                                        <p>Loading your next question...</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Reading Screen Component
+        function ReadingScreen() {
+            const { currentText, textCount, generateQuestion, setCurrentStep } = useContext(AppContext);
+            
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    generateQuestion();
+                }, 2000);
+                return () => clearTimeout(timer);
+            }, []);
+            
+            return (
+                <div className="max-w-4xl mx-auto fade-in">
+                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold">📖 Text {textCount}</h2>
+                            <button
+                                onClick={() => setCurrentStep('welcome')}
+                                className="bg-white/20 hover:bg-white/30 py-2 px-4 rounded-lg button-hover transition-all"
+                            >
+                                ← Back to Settings
+                            </button>
+                        </div>
+                        
+                        <div className="bg-white/20 rounded-xl p-6">
+                            <div className="leading-relaxed whitespace-pre-line">
+                                {currentText}
+                            </div>
+                        </div>
+                        
+                        <div className="text-center mt-6">
+                            <div className="text-sm opacity-75">
+                                📚 Take your time to read carefully, hoa. Questions are coming up next!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Question Screen Component (FIXED FEEDBACK)
+        function QuestionScreen() {
+            const { currentQuestion, questionIndex, handleAnswer, setCurrentStep } = useContext(AppContext);
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            const [showFeedback, setShowFeedback] = useState(false);
+            const [attempts, setAttempts] = useState(0);
+            const [feedbackType, setFeedbackType] = useState('');
+            const [canContinue, setCanContinue] = useState(false);
+            
+            const submitAnswer = () => {
+                if (selectedAnswer === null) return;
+                
+                const isCorrect = selectedAnswer === currentQuestion.correct;
+                const currentAttempt = attempts + 1;
+                
+                setShowFeedback(true);
+                setAttempts(currentAttempt);
+                setCanContinue(false);
+                
+                if (isCorrect) {
+                    setFeedbackType('correct');
+                    setCanContinue(true);
+                } else if (currentAttempt === 1) {
+                    setFeedbackType('tryAgain');
+                    setCanContinue(true);
+                } else {
+                    setFeedbackType('incorrect');
+                    setCanContinue(true);
+                }
+            };
+
+            const handleContinue = () => {
+                if (feedbackType === 'tryAgain') {
+                    setShowFeedback(false);
+                    setSelectedAnswer(null);
+                    setCanContinue(false);
+                } else {
+                    handleAnswer(selectedAnswer);
+                    resetQuestionState();
+                }
+            };
+
+            const resetQuestionState = () => {
+                setSelectedAnswer(null);
+                setShowFeedback(false);
+                setAttempts(0);
+                setFeedbackType('');
+                setCanContinue(false);
+            };
+
+            const getFeedbackMessage = () => {
+                if (feedbackType === 'correct') {
+                    return `✨ ${getRandomEncouragement()} That's correct!`;
+                } else if (feedbackType === 'tryAgain') {
+                    return 'Kāore, not quite right.';
+                } else if (feedbackType === 'incorrect') {
+                    return `That's not right. The correct answer is: ${currentQuestion.options[currentQuestion.correct]}`;
+                }
+                return '';
+            };
+
+            const getButtonText = () => {
+                if (feedbackType === 'tryAgain') {
+                    return 'Try Again';
+                } else if (feedbackType === 'correct' || feedbackType === 'incorrect') {
+                    return questionIndex >= 5 ? 'Complete Text' : 'Next Question';
+                }
+                return 'Continue';
+            };
+            
+            if (!currentQuestion) return <div>Loading question...</div>;
+            
+            return (
+                <div className="max-w-4xl mx-auto fade-in">
+                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold">❓ Question {questionIndex + 1} of 6</h2>
+                            <button
+                                onClick={() => setCurrentStep('reading')}
+                                className="bg-white/20 hover:bg-white/30 py-2 px-4 rounded-lg button-hover transition-all"
+                            >
+                                ← Back to Text
+                            </button>
+                        </div>
+                        
+                        {/* Progress Bar */}
+                        <div className="mb-6">
+                            <div className="bg-white/20 rounded-full h-3">
+                                <div 
+                                    className="bg-white rounded-full h-3 progress-bar"
+                                    style={{ width: `${((questionIndex + 1) / 6) * 100}%` }}
+                                ></div>
+                            </div>
+                            <p className="text-sm opacity-75 mt-2 text-center">
+                                Progress: {questionIndex + 1} of 6 questions - {getRandomEncouragement()}
+                            </p>
+                        </div>
+                        
+                        <div className="bg-white/20 rounded-xl p-6 responsive-height overflow-y-auto">
+                            <h3 className="text-xl font-bold mb-6 text-center">
+                                {currentQuestion.question}
+                            </h3>
+                            
+                            {currentQuestion.options && (
+                                <div className="space-y-3 mb-6">
+                                    {currentQuestion.options.map((option, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => setSelectedAnswer(index)}
+                                            disabled={showFeedback}
+                                            className={`w-full p-4 rounded-lg text-left button-hover transition-all ${
+                                                selectedAnswer === index
+                                                    ? 'bg-white text-nz-blue shadow-lg'
+                                                    : 'bg-white/20 hover:bg-white/30'
+                                            } ${showFeedback ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
+                                        >
+                                            <span className="font-semibold mr-3">
+                                                {String.fromCharCode(97 + index)})
+                                            </span>
+                                            {option}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            
+                            {showFeedback && (
+                                <div className="mb-6 p-4 rounded-lg bg-white/30 fade-in">
+                                    <p className="font-semibold mb-2">
+                                        {getFeedbackMessage()}
+                                    </p>
+                                    {feedbackType === 'tryAgain' ? (
+                                        <p>Kia kaha! Have another go!</p>
+                                    ) : (
+                                        <p>{currentQuestion.explanation}</p>
+                                    )}
+                                </div>
+                            )}
+                            
+                            <div className="text-center">
+                                {!showFeedback ? (
+                                    <button
+                                        onClick={submitAnswer}
+                                        disabled={selectedAnswer === null}
+                                        className="bg-white text-nz-blue py-3 px-8 rounded-xl font-bold shadow-lg button-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Submit Answer
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleContinue}
+                                        disabled={!canContinue}
+                                        className="bg-nz-green text-white py-3 px-8 rounded-xl font-bold shadow-lg button-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {getButtonText()}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Text Complete Screen Component
+        function TextCompleteScreen() {
+            const { setCurrentStep, generateText, progress, textCount } = useContext(AppContext);
+            
+            return (
+                <div className="max-w-4xl mx-auto fade-in">
+                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center">
+                        <h2 className="text-3xl font-bold mb-4">🎉 {getRandomEncouragement()} Well Done!</h2>
+                        <p className="text-xl mb-6">
+                            You've completed Text {textCount}! Fantastic mahi on improving your reading skills.
+                        </p>
+                        
+                        <div className="bg-white/20 rounded-xl p-6 mb-8">
+                            <h3 className="text-lg font-bold mb-4">📊 Your Session Progress</h3>
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <div className="text-2xl font-bold text-nz-green">
+                                        {progress.session.correct}
+                                    </div>
+                                    <div className="text-sm opacity-75">Questions Correct</div>
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-bold">
+                                        {Math.round((progress.session.correct / progress.session.total) * 100)}%
+                                    </div>
+                                    <div className="text-sm opacity-75">Success Rate</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <button
+                                onClick={generateText}
+                                className="w-full bg-white text-nz-blue py-4 px-8 rounded-xl text-lg font-bold shadow-lg button-hover transition-all"
+                            >
+                                📖 Read Another Text
+                            </button>
+                            
+                            <button
+                                onClick={() => setCurrentStep('welcome')}
+                                className="w-full bg-white/20 hover:bg-white/30 py-4 px-8 rounded-xl text-lg font-bold button-hover transition-all"
+                            >
+                                ⚙️ Change Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Error Screen Component
+        function ErrorScreen() {
+            const { setCurrentStep } = useContext(AppContext);
+            
+            return (
+                <div className="max-w-4xl mx-auto fade-in">
+                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center">
+                        <h2 className="text-2xl font-bold mb-4">😅 Oops! Something went wrong</h2>
+                        <p className="mb-6">Kāore he raru! Don't worry, let's try that again!</p>
+                        
+                        <button
+                            onClick={() => setCurrentStep('welcome')}
+                            className="bg-white text-nz-blue py-3 px-8 rounded-xl font-bold shadow-lg button-hover transition-all"
+                        >
+                            🔄 Start Over
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
